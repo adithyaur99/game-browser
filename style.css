@@ -2,6 +2,8 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 body {
@@ -9,6 +11,23 @@ body {
     overflow: hidden;
     background-color: #1a1a2e;
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Full screen touch zone */
+#touch-zone {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    background: transparent;
+}
+
+#touch-zone.active {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 canvas {
@@ -122,6 +141,57 @@ canvas {
 
 .hidden {
     display: none !important;
+}
+
+/* Mobile/Desktop visibility - JS-based detection via body class */
+.mobile-only {
+    display: none;
+}
+
+.desktop-only {
+    display: inline;
+}
+
+/* Touch device (phone/tablet) - show mobile UI */
+body.touch-device .mobile-only {
+    display: inline;
+}
+
+body.touch-device .desktop-only {
+    display: none;
+}
+
+/* Fallback: CSS media query for touch detection */
+@media (hover: none) and (pointer: coarse) {
+    .mobile-only {
+        display: inline;
+    }
+    .desktop-only {
+        display: none;
+    }
+}
+
+/* Touch indicator */
+#touch-indicator {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 40px;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.9) 0%, rgba(56, 142, 60, 0.9) 100%);
+    border-radius: 30px;
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    z-index: 200;
+    box-shadow: 0 4px 20px rgba(76, 175, 80, 0.5);
+    animation: pulse-indicator 0.5s ease-in-out infinite;
+}
+
+@keyframes pulse-indicator {
+    0%, 100% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.05); }
 }
 
 /* Subtle scanline effect for cinematic look */
@@ -469,4 +539,83 @@ body::after {
 
 .player-indicator.p2 {
     background: #ff6b6b;
+}
+
+/* Mobile-specific styles */
+@media screen and (max-width: 768px) {
+    #info {
+        font-size: 16px;
+        padding: 10px 20px;
+        top: 10px;
+    }
+
+    #start-screen h1 {
+        font-size: 24px;
+        padding: 0 20px;
+        text-align: center;
+        line-height: 1.3;
+    }
+
+    #start-screen .subtitle {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+
+    .difficulty-buttons {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        padding: 0 10px;
+    }
+
+    .difficulty-btn {
+        padding: 15px 20px;
+        font-size: 16px;
+        min-width: 80px;
+    }
+
+    #start-btn,
+    .mp-btn {
+        padding: 18px 40px;
+        font-size: 20px;
+    }
+
+    #mode-select {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .mode-btn {
+        padding: 14px 30px;
+        font-size: 18px;
+    }
+
+    #overlay-title {
+        font-size: 48px;
+        letter-spacing: 4px;
+    }
+
+    #overlay p {
+        font-size: 18px;
+        padding: 0 20px;
+        text-align: center;
+    }
+
+    .controls {
+        font-size: 14px !important;
+    }
+
+    .room-code {
+        font-size: 36px;
+        letter-spacing: 8px;
+    }
+
+    .join-section {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    #room-code-input {
+        width: 200px;
+    }
 }

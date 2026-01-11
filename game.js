@@ -6,6 +6,25 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
+// --- Device Detection ---
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+const isTablet = /iPad|Android/i.test(navigator.userAgent) && !(/Mobile/i.test(navigator.userAgent));
+const isPhone = isMobile && !isTablet;
+const isDesktop = !isTouchDevice && !isMobile;
+
+// Device-specific camera settings
+const CAMERA_SETTINGS = {
+    desktop: { fov: 65, height: 4, distance: 14, lookAhead: 8, lookDown: 1.5 },
+    tablet: { fov: 75, height: 20, distance: 22, lookAhead: 20, lookDown: 0 },
+    phone: { fov: 85, height: 35, distance: 28, lookAhead: 30, lookDown: -5 }
+};
+
+const deviceType = isPhone ? 'phone' : (isTablet ? 'tablet' : 'desktop');
+const camSettings = CAMERA_SETTINGS[deviceType];
+
+console.log(`Device detected: ${deviceType}, Touch: ${isTouchDevice}`);
+
 // --- Game Constants ---
 const DIFFICULTY_SETTINGS = {
     easy: { truckSpeed: 18, gapSize: 16, spawnDistance: 90 },
@@ -1288,6 +1307,11 @@ function hideOverlay() {
 
 function startGame() {
     document.getElementById('start-screen').style.display = 'none';
+    // Show touch zone on touch devices
+    if (isTouchDevice) {
+        const touchZone = document.getElementById('touch-zone');
+        if (touchZone) touchZone.classList.remove('hidden');
+    }
     gameStarted = true;
     startTime = Date.now();
 }
@@ -1298,8 +1322,9 @@ function init() {
     envMap = createEnvMap();
     scene.environment = envMap;
 
-    camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 500);
-    camera.position.set(0, 10, 60);
+    // Use device-specific FOV
+    camera = new THREE.PerspectiveCamera(camSettings.fov, window.innerWidth / window.innerHeight, 0.1, 500);
+    camera.position.set(0, camSettings.height + 5, 60);
     camera.lookAt(0, 0, 0);
 
     renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
@@ -2008,8 +2033,37 @@ function init() {
     resetGame();
 
     window.addEventListener('resize', onWindowResize);
+
+    // Set device type class on body for CSS
+    document.body.classList.add(`device-${deviceType}`);
+    if (isTouchDevice) {
+        document.body.classList.add('touch-device');
+    }
+
+    // Keyboard controls (always enabled)
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+
+    // Touch controls (only on touch devices)
+    if (isTouchDevice) {
+        const touchZone = document.getElementById('touch-zone');
+        if (touchZone) {
+            touchZone.addEventListener('touchstart', onTouchStart, { passive: false });
+            touchZone.addEventListener('touchend', onTouchEnd, { passive: false });
+            touchZone.addEventListener('touchcancel', onTouchEnd, { passive: false });
+        }
+
+        // Touch on overlay to restart
+        const overlay = document.getElementById('overlay');
+        if (overlay) {
+            overlay.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (gameOver || gameWon || gameFailed) {
+                    resetGame();
+                }
+            }, { passive: false });
+        }
+    }
 
     // Difficulty button handlers
     document.querySelectorAll('.difficulty-btn').forEach(btn => {
@@ -2343,6 +2397,36 @@ function onKeyUp(event) {
     }
 }
 
+// Touch controls for mobile
+function onTouchStart(event) {
+    event.preventDefault();
+
+    const touchZone = document.getElementById('touch-zone');
+    const touchIndicator = document.getElementById('touch-indicator');
+
+    // If game is over, restart on tap
+    if (gameOver || gameWon || gameFailed) {
+        resetGame();
+        return;
+    }
+
+    // If game is running, accelerate
+    if (gameStarted) {
+        isAccelerating = true;
+        if (touchZone) touchZone.classList.add('active');
+        if (touchIndicator) touchIndicator.classList.remove('hidden');
+    }
+}
+
+function onTouchEnd(event) {
+    event.preventDefault();
+    const touchZone = document.getElementById('touch-zone');
+    const touchIndicator = document.getElementById('touch-indicator');
+    if (touchZone) touchZone.classList.remove('active');
+    if (touchIndicator) touchIndicator.classList.add('hidden');
+    isAccelerating = false;
+}
+
 function resetGame() {
     gameOver = false;
     gameWon = false;
@@ -2544,13 +2628,13 @@ function animate(time) {
         }
     }
 
-    // Camera
+    // Camera - device-optimized view
     const camTarget = player.position.clone();
-    camTarget.y += 4 + Math.abs(playerVelocity.z) * 0.04;
-    camTarget.z += 14 + Math.abs(playerVelocity.z) * 0.15;
+    camTarget.y += camSettings.height + Math.abs(playerVelocity.z) * 0.02;
+    camTarget.z += camSettings.distance + Math.abs(playerVelocity.z) * 0.1;
 
-    camera.position.lerp(camTarget, 0.1);
-    camera.lookAt(player.position.x, player.position.y + 1.5, player.position.z - 8);
+    camera.position.lerp(camTarget, 0.08);
+    camera.lookAt(player.position.x, player.position.y + camSettings.lookDown, player.position.z - camSettings.lookAhead);
 
     composer.render();
 }

@@ -18,7 +18,10 @@
 </head>
 
 <body>
-    <div id="info">Hold SPACE to Accelerate</div>
+    <!-- Full screen touch zone for mobile -->
+    <div id="touch-zone" class="hidden"></div>
+    <div id="touch-indicator" class="hidden">ACCELERATING</div>
+    <div id="info"><span class="desktop-only">Hold SPACE to Accelerate</span><span class="mobile-only">Tap &amp; Hold to Accelerate</span></div>
     <div id="start-screen">
         <h1>JUMP THROUGH 2 MOVING TRUCKS</h1>
         <p class="subtitle">Scania Red Bull Challenge</p>
@@ -69,14 +72,15 @@
             </div>
         </div>
 
-        <p class="controls"><kbd>SPACE</kbd> Accelerate &nbsp;&nbsp;|&nbsp;&nbsp; <kbd>ENTER</kbd> Restart</p>
+        <p class="controls"><span class="desktop-only"><kbd>SPACE</kbd> Accelerate &nbsp;&nbsp;|&nbsp;&nbsp; <kbd>ENTER</kbd> Restart</span><span class="mobile-only">Tap &amp; Hold to Accelerate &nbsp;&nbsp;|&nbsp;&nbsp; Tap to Restart</span></p>
     </div>
     <div id="overlay" class="hidden">
         <h1 id="overlay-title">CRASHED</h1>
-        <p id="overlay-message">Press ENTER to restart</p>
+        <p id="overlay-message"><span class="desktop-only">Press ENTER to restart</span><span class="mobile-only">Tap to restart</span></p>
     </div>
     <div class="instructions hidden">
-        <kbd>SPACE</kbd> Accelerate &nbsp;&nbsp;|&nbsp;&nbsp; <kbd>ENTER</kbd> Restart
+        <span class="desktop-only"><kbd>SPACE</kbd> Accelerate &nbsp;&nbsp;|&nbsp;&nbsp; <kbd>ENTER</kbd> Restart</span>
+        <span class="mobile-only">Tap &amp; Hold to Accelerate &nbsp;&nbsp;|&nbsp;&nbsp; Tap to Restart</span>
     </div>
     <script type="module" src="game.js"></script>
 </body>
