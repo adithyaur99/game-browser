@@ -46,7 +46,12 @@
 
         <!-- Multiplayer Options -->
         <div id="multiplayer-options" class="hidden">
-            <div id="mp-lobby">
+            <div id="mp-name-entry">
+                <p class="difficulty-label">Enter Your Name</p>
+                <input type="text" id="player-name-input" placeholder="Your name" maxlength="12">
+                <button id="name-continue-btn" class="mp-btn">CONTINUE</button>
+            </div>
+            <div id="mp-lobby" class="hidden">
                 <button id="create-room-btn" class="mp-btn">CREATE ROOM</button>
                 <div class="join-section">
                     <input type="text" id="room-code-input" placeholder="Enter room code" maxlength="6">

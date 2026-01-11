@@ -107,6 +107,8 @@ let remotePlayer = null;
 let remotePlayerData = { x: 0, y: 0, z: 55, vy: 0, crashed: false, won: false };
 let localPlayerNum = 1;
 let multiplayerCanRestart = false; // Only true when both players finished
+let localPlayerName = 'Player';
+let remotePlayerName = 'Player';
 
 // --- Custom Shaders ---
 
@@ -2096,6 +2098,10 @@ function setupMultiplayerUI() {
     const multiplayerBtn = document.getElementById('multiplayer-btn');
     const soloOptions = document.getElementById('solo-options');
     const multiplayerOptions = document.getElementById('multiplayer-options');
+    const nameEntry = document.getElementById('mp-name-entry');
+    const nameContinueBtn = document.getElementById('name-continue-btn');
+    const playerNameInput = document.getElementById('player-name-input');
+    const mpLobby = document.getElementById('mp-lobby');
     const createRoomBtn = document.getElementById('create-room-btn');
     const joinRoomBtn = document.getElementById('join-room-btn');
     const roomCodeInput = document.getElementById('room-code-input');
@@ -2113,6 +2119,17 @@ function setupMultiplayerUI() {
         document.getElementById('mode-select').classList.add('hidden');
         soloOptions.classList.add('hidden');
         multiplayerOptions.classList.remove('hidden');
+        // Show name entry first
+        nameEntry.classList.remove('hidden');
+        mpLobby.classList.add('hidden');
+    });
+
+    // Name entry continue button
+    nameContinueBtn.addEventListener('click', () => {
+        const name = playerNameInput.value.trim() || 'Player';
+        localPlayerName = name;
+        nameEntry.classList.add('hidden');
+        mpLobby.classList.remove('hidden');
     });
 
     createRoomBtn.addEventListener('click', createRoom);
@@ -2203,14 +2220,15 @@ function setupConnection() {
         }
     });
 
-    // Send a handshake
-    conn.send({ type: 'handshake', playerNum: localPlayerNum });
+    // Send a handshake with player name
+    conn.send({ type: 'handshake', playerNum: localPlayerNum, name: localPlayerName });
 }
 
 function handleNetworkData(data) {
     switch (data.type) {
         case 'handshake':
-            console.log('Player ' + data.playerNum + ' connected');
+            console.log('Player ' + data.playerNum + ' connected: ' + data.name);
+            remotePlayerName = data.name || 'Player';
             break;
         case 'playerUpdate':
             remotePlayerData = data.state;
@@ -2269,8 +2287,43 @@ function startMultiplayerGame() {
     // Create remote player (different color motorcycle)
     createRemotePlayer();
 
+    // Add name label above local player
+    createLocalPlayerLabel();
+
     // Start the game
     startGame();
+}
+
+function createLocalPlayerLabel() {
+    // Remove existing label if any
+    const existingLabel = player.getObjectByName('localNameLabel');
+    if (existingLabel) {
+        player.remove(existingLabel);
+    }
+
+    // Create name label for local player
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    // Background - blue for player 1, red for player 2
+    ctx.fillStyle = localPlayerNum === 1 ? '#4444ff' : '#ff4444';
+    ctx.beginPath();
+    ctx.roundRect(10, 5, 236, 54, 10);
+    ctx.fill();
+    // Player name text
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 28px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(localPlayerName.substring(0, 12), 128, 42);
+
+    const labelTexture = new THREE.CanvasTexture(canvas);
+    const labelMat = new THREE.SpriteMaterial({ map: labelTexture, transparent: true });
+    const label = new THREE.Sprite(labelMat);
+    label.position.set(0, 2.5, 0);
+    label.scale.set(2, 0.5, 1);
+    label.name = 'localNameLabel';
+    player.add(label);
 }
 
 function createRemotePlayer() {
@@ -2338,23 +2391,28 @@ function createRemotePlayer() {
     helmet.scale.set(1, 0.9, 1.1);
     remotePlayer.add(helmet);
 
-    // Player label
+    // Player name label
     const canvas = document.createElement('canvas');
-    canvas.width = 128;
+    canvas.width = 256;
     canvas.height = 64;
     const ctx = canvas.getContext('2d');
+    // Background with rounded corners effect
     ctx.fillStyle = localPlayerNum === 1 ? '#ff4444' : '#4444ff';
-    ctx.fillRect(0, 0, 128, 64);
+    ctx.beginPath();
+    ctx.roundRect(10, 5, 236, 54, 10);
+    ctx.fill();
+    // Player name text
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 32px Arial';
+    ctx.font = 'bold 28px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('P' + (localPlayerNum === 1 ? '2' : '1'), 64, 45);
+    ctx.fillText(remotePlayerName.substring(0, 12), 128, 42);
 
     const labelTexture = new THREE.CanvasTexture(canvas);
-    const labelMat = new THREE.SpriteMaterial({ map: labelTexture });
+    const labelMat = new THREE.SpriteMaterial({ map: labelTexture, transparent: true });
     const label = new THREE.Sprite(labelMat);
     label.position.set(0, 2.5, 0);
-    label.scale.set(1, 0.5, 1);
+    label.scale.set(2, 0.5, 1);
+    label.name = 'nameLabel';
     remotePlayer.add(label);
 
     // Position remote player at start
