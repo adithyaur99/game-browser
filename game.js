@@ -1525,7 +1525,7 @@ function init() {
     rampShape.lineTo(0, 0);
 
     const rampGeo = new THREE.ExtrudeGeometry(rampShape, {
-        depth: 4.5,
+        depth: 10, // Wider ramp to cover both players in multiplayer
         bevelEnabled: true,
         bevelSize: 0.08,
         bevelThickness: 0.08,
@@ -1539,7 +1539,7 @@ function init() {
 
     ramp = new THREE.Mesh(rampGeo, rampMat);
     ramp.rotation.y = Math.PI / 2;
-    ramp.position.set(-2.25, 0, 10);
+    ramp.position.set(-5, 0, 10); // Centered to cover both player positions
     ramp.castShadow = true;
     ramp.receiveShadow = true;
     scene.add(ramp);
@@ -2228,6 +2228,7 @@ function handleNetworkData(data) {
         case 'gameEvent':
             if (data.event === 'crashed') {
                 remotePlayerData.crashed = true;
+                checkMultiplayerEnd();
             } else if (data.event === 'won') {
                 remotePlayerData.won = true;
                 checkMultiplayerEnd();
@@ -2592,7 +2593,8 @@ function animate(time) {
 
         // Ramp trigger
         if (!hasJumped && player.position.z < 14 && player.position.z > 8) {
-            if (Math.abs(player.position.x) < 2.5) {
+            // Wider trigger zone to accommodate side-by-side multiplayer (players at x = ±2.5)
+            if (Math.abs(player.position.x) < 5) {
                 isJumping = true;
                 hasJumped = true;
                 playerVelocity.y = JUMP_FORCE;
