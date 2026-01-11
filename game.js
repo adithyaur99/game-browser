@@ -106,6 +106,7 @@ let conn = null;
 let remotePlayer = null;
 let remotePlayerData = { x: 0, y: 0, z: 55, vy: 0, crashed: false, won: false };
 let localPlayerNum = 1;
+const PLAYER_X_OFFSET = 2.5; // Side-by-side offset for multiplayer
 
 // --- Custom Shaders ---
 
@@ -2346,7 +2347,9 @@ function createRemotePlayer() {
     label.scale.set(1, 0.5, 1);
     remotePlayer.add(label);
 
-    remotePlayer.position.set(0, 0, 55);
+    // Position remote player on opposite side
+    const remoteX = localPlayerNum === 1 ? PLAYER_X_OFFSET : -PLAYER_X_OFFSET;
+    remotePlayer.position.set(remoteX, 0, 55);
     scene.add(remotePlayer);
 }
 
@@ -2443,7 +2446,9 @@ function resetGame() {
     trucks.forEach(t => t.remove());
     trucks = [];
 
-    player.position.set(0, 0, 55);
+    // Position player - offset to side in multiplayer for side-by-side view
+    const playerX = isMultiplayer ? (localPlayerNum === 1 ? -PLAYER_X_OFFSET : PLAYER_X_OFFSET) : 0;
+    player.position.set(playerX, 0, 55);
     player.rotation.set(0, 0, 0);
     player.visible = true;
     playerVelocity.set(0, 0, 0);
@@ -2457,9 +2462,10 @@ function resetGame() {
 
     // Reset multiplayer state
     if (isMultiplayer) {
-        remotePlayerData = { x: 0, y: 0, z: 55, vy: 0, crashed: false, won: false };
+        const remoteX = localPlayerNum === 1 ? PLAYER_X_OFFSET : -PLAYER_X_OFFSET;
+        remotePlayerData = { x: remoteX, y: 0, z: 55, vy: 0, crashed: false, won: false };
         if (remotePlayer) {
-            remotePlayer.position.set(0, 0, 55);
+            remotePlayer.position.set(remoteX, 0, 55);
             remotePlayer.visible = true;
         }
     }
