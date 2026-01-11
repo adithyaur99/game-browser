@@ -2232,6 +2232,9 @@ function handleNetworkData(data) {
             } else if (data.event === 'won') {
                 remotePlayerData.won = true;
                 checkMultiplayerEnd();
+            } else if (data.event === 'reset') {
+                // Other player reset, sync our reset too
+                resetGame();
             }
             break;
     }
@@ -2410,6 +2413,10 @@ function onKeyDown(event) {
         if (gameOver || gameWon || gameFailed) {
             // In multiplayer, only restart when both players finished
             if (isMultiplayer && !multiplayerCanRestart) return;
+            // Send reset event to sync with other player
+            if (isMultiplayer) {
+                sendGameEvent('reset');
+            }
             resetGame();
         }
     }
@@ -2432,6 +2439,10 @@ function onTouchStart(event) {
     if (gameOver || gameWon || gameFailed) {
         // In multiplayer, only restart when both players finished
         if (isMultiplayer && !multiplayerCanRestart) return;
+        // Send reset event to sync with other player
+        if (isMultiplayer) {
+            sendGameEvent('reset');
+        }
         resetGame();
         return;
     }
