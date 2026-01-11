@@ -2578,6 +2578,9 @@ function animate(time) {
 
         player.position.add(playerVelocity.clone().multiplyScalar(delta));
 
+        // Keep player centered on track (no lateral movement)
+        player.position.x = 0;
+
         if (player.position.y < 0) {
             player.position.y = 0;
             playerVelocity.y = 0;
