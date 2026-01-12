@@ -110,6 +110,12 @@ let multiplayerCanRestart = false; // Only true when both players finished
 let localPlayerName = 'Player';
 let remotePlayerName = 'Player';
 
+// Video recording state
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+let recordedVideoBlob = null;
+
 // --- Custom Shaders ---
 
 // Sunny Swedish Sky Shader
@@ -1323,6 +1329,9 @@ function startGame() {
     }
     gameStarted = true;
     startTime = Date.now();
+
+    // Start video recording for sharing
+    startRecording();
 }
 
 // --- Initialization ---
@@ -2089,6 +2098,9 @@ function init() {
     // Multiplayer UI handlers
     setupMultiplayerUI();
 
+    // Share modal handlers
+    setupShareModal();
+
     requestAnimationFrame(animate);
 }
 
@@ -2616,6 +2628,7 @@ function animate(time) {
             } else {
                 // Jumped too early or too late - immediate fail
                 gameFailed = true;
+                stopRecording(); // Stop recording on fail
                 if (isMultiplayer) {
                     sendGameEvent('crashed');
                     checkMultiplayerEnd();
@@ -2677,6 +2690,13 @@ function animate(time) {
                 checkMultiplayerEnd();
             } else {
                 showOverlay('SUCCESS!', 'You made it! Press ENTER to play again', true);
+                // Stop recording and show share modal after a delay
+                stopRecording();
+                setTimeout(() => {
+                    if (recordedVideoBlob) {
+                        showShareModal();
+                    }
+                }, 500);
             }
             updateUI();
         }
@@ -2693,6 +2713,7 @@ function animate(time) {
         for (const truck of trucks) {
             if (truck.checkCollision(playerBox)) {
                 gameOver = true;
+                stopRecording(); // Stop recording on crash
                 // Trigger realistic crash physics
                 initCrash(truck.getDirection(), TRUCK_SPEED);
                 if (isMultiplayer) {
@@ -2733,6 +2754,154 @@ function animate(time) {
     camera.lookAt(player.position.x, player.position.y + camSettings.lookDown, player.position.z - camSettings.lookAhead);
 
     composer.render();
+}
+
+// --- Video Recording Functions ---
+function startRecording() {
+    if (isRecording) return;
+
+    try {
+        const canvas = renderer.domElement;
+        const stream = canvas.captureStream(30); // 30 FPS
+
+        recordedChunks = [];
+        mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'video/webm;codecs=vp9',
+            videoBitsPerSecond: 5000000 // 5 Mbps for good quality
+        });
+
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+
+        mediaRecorder.onstop = () => {
+            recordedVideoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+            isRecording = false;
+        };
+
+        mediaRecorder.start(100); // Collect data every 100ms
+        isRecording = true;
+        console.log('Recording started');
+    } catch (err) {
+        console.error('Failed to start recording:', err);
+    }
+}
+
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        console.log('Recording stopped');
+    }
+}
+
+function showShareModal() {
+    const modal = document.getElementById('share-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+function hideShareModal() {
+    const modal = document.getElementById('share-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function downloadVideo() {
+    if (!recordedVideoBlob) {
+        alert('No video recorded yet!');
+        return;
+    }
+
+    const url = URL.createObjectURL(recordedVideoBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'scania-truck-jump-' + Date.now() + '.webm';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+async function shareVideo(platform) {
+    if (!recordedVideoBlob) {
+        alert('No video recorded yet!');
+        return;
+    }
+
+    const shareText = "I just made an epic truck jump in the Scania Red Bull Challenge! Can you beat my time?";
+    const shareUrl = window.location.href;
+
+    // For native share (mobile)
+    if (platform === 'native' && navigator.share && navigator.canShare) {
+        try {
+            const file = new File([recordedVideoBlob], 'truck-jump.webm', { type: 'video/webm' });
+            if (navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: 'Scania Truck Jump Challenge',
+                    text: shareText,
+                    files: [file]
+                });
+                return;
+            }
+        } catch (err) {
+            console.log('Native share failed:', err);
+        }
+    }
+
+    // Fallback to platform-specific sharing (opens in new tab)
+    let shareLink = '';
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(shareUrl);
+
+    switch (platform) {
+        case 'twitter':
+            shareLink = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+            break;
+        case 'facebook':
+            shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
+            break;
+        case 'linkedin':
+            shareLink = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+            break;
+        case 'whatsapp':
+            shareLink = `https://wa.me/?text=${encodedText}%20${encodedUrl}`;
+            break;
+        case 'reddit':
+            shareLink = `https://reddit.com/submit?url=${encodedUrl}&title=${encodedText}`;
+            break;
+    }
+
+    if (shareLink) {
+        window.open(shareLink, '_blank', 'width=600,height=400');
+    }
+
+    // Also download the video so user can attach it
+    downloadVideo();
+}
+
+function setupShareModal() {
+    const closeBtn = document.getElementById('share-close-btn');
+    const downloadBtn = document.getElementById('download-video-btn');
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', hideShareModal);
+    }
+
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadVideo);
+    }
+
+    // Share buttons
+    document.querySelectorAll('.share-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const platform = btn.dataset.platform;
+            shareVideo(platform);
+        });
+    });
 }
 
 init();
